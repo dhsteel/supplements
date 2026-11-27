@@ -151,20 +151,26 @@
   var now = new Date();
   var settings = get('supp-settings', {gymDays: [1,2,4,5], offset: 0});
   if (!settings.v2) { settings.gymDays = [1,2,4,5]; settings.v2 = true; set('supp-settings', settings); }
-  var dayKey = 'supp-day-' + ymd(now);
-  var gymKey = 'supp-gym-' + ymd(now);
-  var mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  var weekKey = 'supp-week-' + ymd(mon);
-  var day = get(dayKey, {});
-  var gymSet = get(gymKey, null);
-  var week = get(weekKey, {});
+  var dayKey, gymKey, mon, weekKey, day, gymSet, week;
+
+  // Everything that depends on "today" lives here, so we can re-run it when the date changes.
+  function loadDay(){
+    now = new Date();
+    dayKey = 'supp-day-' + ymd(now);
+    gymKey = 'supp-gym-' + ymd(now);
+    mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    weekKey = 'supp-week-' + ymd(mon);
+    day = get(dayKey, {});
+    gymSet = get(gymKey, null);
+    week = get(weekKey, {});
+    document.getElementById('today').textContent = now.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+    if (boxes) boxes.forEach(function(b){ b.checked = b.dataset.weekly ? !!week[b.dataset.id] : !!day[b.dataset.id]; });
+  }
 
   var START = Math.round(Date.UTC(2026, 10, 18) / 86400000); // Wed Nov 18, 2026 = iron day
   function mineralFor(d){ return ((((dayNum(d) - START + settings.offset) % 2) + 2) % 2 === 0) ? 'iron' : 'zinc'; }
   function defaultGym(d){ return settings.gymDays.indexOf(d.getDay()) !== -1; }
   function gymToday(){ return typeof gymSet === 'boolean' ? gymSet : defaultGym(now); }
-
-  document.getElementById('today').textContent = now.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
 
   // Build the checklist from routine.js
   var slotsEl = document.getElementById('slots');
@@ -184,6 +190,7 @@
   });
 
   var boxes = Array.prototype.slice.call(document.querySelectorAll('input[data-id]'));
+  loadDay();
   var gymToggle = document.getElementById('gymToggle');
 
   function active(el){
@@ -258,7 +265,6 @@
   }
 
   boxes.forEach(function(b){
-    b.checked = b.dataset.weekly ? !!week[b.dataset.id] : !!day[b.dataset.id];
     b.addEventListener('change', function(){
       if (b.dataset.weekly) { week[b.dataset.id] = b.checked; set(weekKey, week); }
       else { day[b.dataset.id] = b.checked; set(dayKey, day); }
@@ -287,6 +293,23 @@
   if ((location.hash || '').slice(1) === 'week') show('week');
 
   render();
+
+  // If the page stays open past midnight (or the phone wakes it the next morning),
+  // switch to the new day instead of showing yesterday.
+  var midnightTimer;
+  function checkDay(){
+    if (ymd(new Date()) !== ymd(now)) { loadDay(); render(); }
+    scheduleMidnight();
+  }
+  function scheduleMidnight(){
+    clearTimeout(midnightTimer);
+    var t = new Date(); t.setHours(24, 0, 1, 0);
+    midnightTimer = setTimeout(checkDay, t - new Date());
+  }
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) checkDay(); });
+  window.addEventListener('focus', checkDay);
+  window.addEventListener('pageshow', checkDay);
+  scheduleMidnight();
 })();
 </script>
 </body>
