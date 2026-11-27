@@ -14,10 +14,22 @@ var APP_FILES = [
   './icon-512.png'
 ];
 
+// Files that may not exist yet (e.g. routine.js once the routine moves out of
+// index.html). Cached if present, skipped quietly if not, so install never fails.
+var OPTIONAL_FILES = [
+  './routine.js'
+];
+
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(APP_CACHE)
-      .then(function (cache) { return cache.addAll(APP_FILES); })
+      .then(function (cache) {
+        return cache.addAll(APP_FILES).then(function () {
+          return Promise.all(OPTIONAL_FILES.map(function (f) {
+            return cache.add(f).catch(function () {});
+          }));
+        });
+      })
       .then(function () { return self.skipWaiting(); })
   );
 });
