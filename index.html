@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Supplements">
+<meta name="theme-color" content="#eef2f3">
+<title>Daily Supplement Checklist</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef2f3; --card:#fbfcfc; --ink:#24363a; --muted:#5f7478; --line:#d6e0e2;
+    --sea:#3f6d70; --sea-soft:#dbe8e8; --plum:#6d5f7d; --plum-soft:#e7e3ee;
+    --amber:#8a6a3a; --amber-soft:#f3ead9; --done:#9fb3b5; --check-bg:#fff; --track:#cfd9db;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#162022; --card:#1f2b2e; --ink:#e3ecec; --muted:#9db0b2; --line:#33464a;
+      --sea:#7fb0b2; --sea-soft:#27393c; --plum:#b9a9cc; --plum-soft:#2f2a3a;
+      --amber:#d9b47a; --amber-soft:#3a3122; --done:#5f7478; --check-bg:#1f2b2e; --track:#33464a;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:560px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom))}
+  h1,h2{font-family:Fraunces,Georgia,serif;font-weight:600;letter-spacing:-.01em;margin:0}
+  h1{font-size:28px} h2{font-size:19px}
+  .sub{color:var(--muted);margin:4px 0 0}
+  nav{display:flex;gap:6px;margin:18px 0 14px;background:var(--sea-soft);padding:4px;border-radius:12px}
+  nav button{flex:1;border:0;background:transparent;padding:9px 6px;border-radius:9px;font:600 14px Inter,sans-serif;color:var(--sea);cursor:pointer}
+  nav button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .view{display:none}.view.on{display:block}
+  .card,.slot,.progress{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+  .progress{padding:14px 16px}
+  .bar{height:8px;background:var(--sea-soft);border-radius:99px;overflow:hidden;margin-top:8px}
+  .bar i{display:block;height:100%;width:0;background:var(--sea);border-radius:99px;transition:width .25s}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .small{font-size:13px;color:var(--muted)}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .pill{font:600 12px Inter,sans-serif;padding:4px 10px;border-radius:99px}
+  .p-iron{background:var(--plum-soft);color:var(--plum)}
+  .p-zinc{background:var(--amber-soft);color:var(--amber)}
+  .gym{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
+  .switch{position:relative;width:50px;height:30px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .switch span{position:absolute;inset:0;background:var(--track);border-radius:99px;transition:.2s;cursor:pointer}
+  .switch span::before{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;background:#fff;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:.2s}
+  .switch input:checked+span{background:var(--sea)}
+  .switch input:checked+span::before{transform:translateX(20px)}
+  .slot header{padding:12px 16px 8px;border-bottom:1px solid var(--line)}
+  .slot header p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+  .slot.hidden,.item.hidden{display:none}
+  label.item{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-top:1px solid var(--line);cursor:pointer}
+  label.item.first{border-top:0}
+  label.item input{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;margin:1px 0 0;border:2px solid var(--sea);border-radius:7px;display:grid;place-items:center;cursor:pointer;background:var(--check-bg)}
+  label.item input:checked{background:var(--sea)}
+  label.item input:checked::after{content:"";width:6px;height:11px;border:solid var(--card);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+  .item b{font-weight:600;display:block}
+  .item span{font-size:13px;color:var(--muted)}
+  label.item.done b{color:var(--done);text-decoration:line-through}
+  .tag{display:inline-block;font:600 11px Inter,sans-serif;font-style:normal;padding:2px 7px;border-radius:99px;margin-left:4px;vertical-align:1px}
+  .t-week{background:var(--sea-soft);color:var(--sea)}
+  .card{padding:14px 16px}
+  .card h2{margin-bottom:8px}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:6px}
+  .day{border:1px solid var(--line);border-radius:10px;padding:8px 2px;text-align:center;font-size:12px;background:var(--card)}
+  .day.today{border-color:var(--sea);box-shadow:0 0 0 1px var(--sea)}
+  .day .dn{color:var(--muted);font-weight:600}
+  .day .dd{font-size:11px;color:var(--muted)}
+  .day .mk{display:block;margin:6px auto 0;width:26px;padding:2px 0;border-radius:6px;font-weight:600}
+  .day .g{display:block;margin-top:4px;font-size:10px;color:var(--sea);font-weight:600;min-height:14px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:6px 12px;font:600 13px Inter,sans-serif;color:var(--muted);cursor:pointer}
+  .chip.on{background:var(--sea);border-color:var(--sea);color:var(--card)}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--muted);padding:8px 12px;border-radius:10px;font:500 13px Inter,sans-serif;cursor:pointer}
+  .center{text-align:center;margin-top:8px}
+  .legend{display:flex;gap:12px;margin-top:10px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Daily Supplements</h1>
+  <p class="sub" id="today"></p>
+
+  <nav>
+    <button data-v="today" class="on">Today</button>
+    <button data-v="week">Week &amp; settings</button>
+  </nav>
+
+  <!-- TODAY -->
+  <section class="view on" id="v-today">
+    <div class="progress">
+      <div class="row"><strong id="count">0 of 0</strong><span class="small">Resets each day</span></div>
+      <div class="bar"><i id="fill"></i></div>
+      <div class="pills"><span class="pill" id="mineralPill"></span></div>
+    </div>
+
+    <div class="slot">
+      <div class="gym">
+        <div><b>Gym day</b><br><span class="small" id="gymHint">Turn on to add electrolytes.</span></div>
+        <label class="switch"><input type="checkbox" id="gymToggle"><span></span></label>
+      </div>
+    </div>
+
+    <div class="slot">
+      <header><h2>On waking</h2><p>Empty stomach. Wait 30–60 min before coffee, tea or dairy.</p></header>
+      <label class="item" data-only="iron"><input type="checkbox" data-id="iron"><div><b>Iron, 28 mg</b><span>Nature's Truth iron bisglycinate, 1 capsule. With water, or a small snack if it bugs your stomach.</span></div></label>
+      <label class="item"><input type="checkbox" data-id="vitc"><div><b>Vitamin C gummies, 250 mg</b><span>Nature Made. Every morning; on iron days it also helps the iron absorb.</span></div></label>
+    </div>
+
+    <div class="slot">
+      <header><h2>Morning coffee</h2><p>At least 30–60 min after the iron.</p></header>
+      <label class="item"><input type="checkbox" data-id="collagen"><div><b>Collagen, 1–2 tbsp</b><span>Stirred into your coffee.</span></div></label>
+    </div>
+
+    <div class="slot">
+      <header><h2>Biggest meal</h2><p>One with some fat in it.</p></header>
+      <label class="item"><input type="checkbox" data-id="multi"><div><b>Multivitamin, 2 gummies</b><span>Nature Made Multi + Omega-3.</span></div></label>
+      <label class="item"><input type="checkbox" data-id="omega"><div><b>Omega-3 mini gels, 2</b><span>Fridge storage helps with fishy burps.</span></div></label>
+      <label class="item" data-only="sunday"><input type="checkbox" data-id="d2" data-weekly="1"><div><b>Vitamin D2, 50,000 IU <em class="tag t-week">Sundays</em></b><span>Once a week, until the bottle is finished.</span></div></label>
+    </div>
+
+    <div class="slot">
+      <header><h2>Gym</h2><p>Before or during your workout.</p></header>
+      <label class="item" data-only="gym"><input type="checkbox" data-id="electrolytes"><div><b>Electrolytes</b><span>Gym days only.</span></div></label>
+    </div>
+
+    <div class="slot">
+      <header><h2>Dinner</h2><p>Zinc is easier on your stomach with food.</p></header>
+      <label class="item" data-only="zinc"><input type="checkbox" data-id="zinc"><div><b>Zinc, 30 mg</b><span>Nature Made, 1 tablet with your meal.</span></div></label>
+    </div>
+
+    <div class="slot">
+      <header><h2>Bedtime</h2><p>Calcium goes last so it doesn't block iron or zinc.</p></header>
+      <label class="item"><input type="checkbox" data-id="calcium"><div><b>Citracal Petites, 1 caplet</b><span>No food needed. Fine to skip on heavy-dairy days.</span></div></label>
+      <label class="item"><input type="checkbox" data-id="mag"><div><b>Magnesium glycinate, 2 gummies</b><span>For sleep and recovery.</span></div></label>
+    </div>
+
+    <div class="center"><button class="btn" id="reset">Clear today's checks</button></div>
+  </section>
+
+  <!-- WEEK -->
+  <section class="view" id="v-week">
+    <div class="card">
+      <h2>Pill case planner</h2>
+      <p class="small" style="margin:0">Iron and zinc alternate days. Use this when you fill your weekly case.</p>
+      <p class="small" style="margin:12px 0 0"><b>This week</b></p>
+      <div class="week" id="wk0"></div>
+      <p class="small" style="margin:12px 0 0"><b>Next week</b></p>
+      <div class="week" id="wk1"></div>
+      <div class="legend"><span><span class="pill p-iron">Fe</span> iron</span><span><span class="pill p-zinc">Zn</span> zinc</span><span style="color:var(--sea);font-weight:600">gym · D2</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Out of sync?</h2>
+      <p class="small" style="margin:0 0 10px">If your pill case says zinc today but this says iron, swap them.</p>
+      <button class="btn" id="swap">Swap iron and zinc days</button>
+    </div>
+
+    <div class="card">
+      <h2>Usual gym days</h2>
+      <p class="small" style="margin:0">These days start with Gym day switched on. You can still flip it on the Today tab.</p>
+      <div class="chips" id="gymDays"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var mem = {};
+  function get(k, d){ try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? (mem[k] != null ? mem[k] : d) : v; } catch(e){ return mem[k] != null ? mem[k] : d; } }
+  function set(k, v){ mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function ymd(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+  function dayNum(d){ return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); }
+
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var now = new Date();
+  var settings = get('supp-settings', {gymDays: [1,2,4,5], offset: 0});
+  if (!settings.v2) { settings.gymDays = [1,2,4,5]; settings.v2 = true; set('supp-settings', settings); }
+  var dayKey = 'supp-day-' + ymd(now);
+  var gymKey = 'supp-gym-' + ymd(now);
+  var mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  var weekKey = 'supp-week-' + ymd(mon);
+  var day = get(dayKey, {});
+  var gymSet = get(gymKey, null);
+  var week = get(weekKey, {});
+
+  var START = Math.round(Date.UTC(2026, 10, 18) / 86400000); // Wed Nov 18, 2026 = iron day
+  function mineralFor(d){ return ((((dayNum(d) - START + settings.offset) % 2) + 2) % 2 === 0) ? 'iron' : 'zinc'; }
+  function defaultGym(d){ return settings.gymDays.indexOf(d.getDay()) !== -1; }
+  function gymToday(){ return typeof gymSet === 'boolean' ? gymSet : defaultGym(now); }
+
+  document.getElementById('today').textContent = now.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('input[data-id]'));
+  var gymToggle = document.getElementById('gymToggle');
+
+  function active(el){
+    var only = el.getAttribute('data-only') || (el.closest('[data-only]') && el.closest('[data-only]').getAttribute('data-only'));
+    if (!only) return true;
+    if (only === 'gym') return gymToday();
+    if (only === 'sunday') return now.getDay() === 0;
+    return only === mineralFor(now);
+  }
+
+  function render(){
+    var m = mineralFor(now);
+    var pill = document.getElementById('mineralPill');
+    pill.textContent = m === 'iron' ? 'Iron day' : 'Zinc day';
+    pill.className = 'pill ' + (m === 'iron' ? 'p-iron' : 'p-zinc');
+
+    gymToggle.checked = gymToday();
+    document.getElementById('gymHint').textContent = gymToday() ? 'Electrolytes added to today.' : 'Turn on to add electrolytes.';
+
+    document.querySelectorAll('[data-only]').forEach(function(el){ el.classList.toggle('hidden', !active(el)); });
+
+    document.querySelectorAll('.slot').forEach(function(s){
+      var items = s.querySelectorAll('label.item');
+      if (!items.length) return;
+      var first = true;
+      items.forEach(function(l){
+        if (l.classList.contains('hidden')) return;
+        l.classList.toggle('first', first); first = false;
+      });
+      s.classList.toggle('hidden', first);
+    });
+
+    var daily = boxes.filter(function(b){ return active(b.closest('label')); });
+    var n = daily.filter(function(b){ return b.checked; }).length;
+    document.getElementById('count').textContent = n + ' of ' + daily.length + ' done today';
+    document.getElementById('fill').style.width = (daily.length ? n / daily.length * 100 : 0) + '%';
+    boxes.forEach(function(b){ b.closest('label').classList.toggle('done', b.checked); });
+
+    renderWeek('wk0', 0); renderWeek('wk1', 7);
+    renderGymDays();
+  }
+
+  function renderWeek(id, shift){
+    var el = document.getElementById(id); el.innerHTML = '';
+    for (var i = 0; i < 7; i++){
+      var d = new Date(mon); d.setDate(mon.getDate() + shift + i);
+      var m = mineralFor(d);
+      var isToday = ymd(d) === ymd(now);
+      var gym = isToday ? gymToday() : defaultGym(d);
+      var cell = document.createElement('div');
+      cell.className = 'day' + (isToday ? ' today' : '');
+      cell.innerHTML = '<div class="dn">' + DAYS[d.getDay()] + '</div><div class="dd">' + (d.getMonth()+1) + '/' + d.getDate() + '</div>' +
+        '<span class="mk ' + (m === 'iron' ? 'p-iron' : 'p-zinc') + '">' + (m === 'iron' ? 'Fe' : 'Zn') + '</span>' +
+        '<span class="g">' + (gym ? 'gym' : (d.getDay() === 0 ? 'D2' : '')) + '</span>';
+      el.appendChild(cell);
+    }
+  }
+
+  function renderGymDays(){
+    var el = document.getElementById('gymDays'); el.innerHTML = '';
+    [1,2,3,4,5,6,0].forEach(function(wd){
+      var b = document.createElement('button');
+      b.className = 'chip' + (settings.gymDays.indexOf(wd) !== -1 ? ' on' : '');
+      b.textContent = DAYS[wd];
+      b.addEventListener('click', function(){
+        var i = settings.gymDays.indexOf(wd);
+        if (i === -1) settings.gymDays.push(wd); else settings.gymDays.splice(i, 1);
+        set('supp-settings', settings); render();
+      });
+      el.appendChild(b);
+    });
+  }
+
+  boxes.forEach(function(b){
+    b.checked = b.dataset.weekly ? !!week[b.dataset.id] : !!day[b.dataset.id];
+    b.addEventListener('change', function(){
+      if (b.dataset.weekly) { week[b.dataset.id] = b.checked; set(weekKey, week); }
+      else { day[b.dataset.id] = b.checked; set(dayKey, day); }
+      render();
+    });
+  });
+
+  gymToggle.addEventListener('change', function(){ gymSet = gymToggle.checked; set(gymKey, gymSet); render(); });
+
+  document.getElementById('reset').addEventListener('click', function(){
+    day = {}; set(dayKey, day);
+    boxes.forEach(function(b){ if (!b.dataset.weekly) b.checked = false; });
+    render();
+  });
+
+  document.getElementById('swap').addEventListener('click', function(){
+    settings.offset = settings.offset ? 0 : 1; set('supp-settings', settings); render();
+  });
+
+  var tabs = document.querySelectorAll('nav button');
+  function show(v){
+    tabs.forEach(function(t){ t.classList.toggle('on', t.dataset.v === v); });
+    document.querySelectorAll('.view').forEach(function(s){ s.classList.toggle('on', s.id === 'v-' + v); });
+  }
+  tabs.forEach(function(t){ t.addEventListener('click', function(){ show(t.dataset.v); try { history.replaceState(null, '', '#' + t.dataset.v); } catch(e){} }); });
+  if ((location.hash || '').slice(1) === 'week') show('week');
+
+  render();
+})();
+</script>
+</body>
+</html>
