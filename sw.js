@@ -1,86 +1,49 @@
-// Offline support for the supplements checklist.
-// Bump VERSION when you want every phone to drop its old cache.
-var VERSION = 'v1';
-var APP_CACHE = 'supp-app-' + VERSION;
-var FONT_CACHE = 'supp-fonts-' + VERSION;
+// Offline support. Own files are network-first (edits show up right away), fonts cache-first.
+// Bump VERSION to make every phone drop its old cache. Registered as sw.js?debug to log [supp-sw] lines.
+const VERSION = 'v2';
+const APP = `supp-app-${VERSION}`, FONTS = `supp-fonts-${VERSION}`;
+// Relative to this file, so it works under /supplements/ on GitHub Pages.
+const FILES = ['./', './index.html', './style.css', './app.js', './routine.js', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
+const DEBUG = new URL(location).searchParams.has('debug');
+const log = (...a) => DEBUG && console.log('[supp-sw]', ...a);
 
-// Paths are relative to this file, so they work at /supplements/ on GitHub Pages.
-var APP_FILES = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './apple-touch-icon.png',
-  './icon-192.png',
-  './icon-512.png'
-];
+addEventListener('install', (e) => e.waitUntil((async () => {
+  await (await caches.open(APP)).addAll(FILES);
+  log('installed', VERSION);
+  await skipWaiting();
+})()));
 
-// Files that may not exist yet (e.g. routine.js once the routine moves out of
-// index.html). Cached if present, skipped quietly if not, so install never fails.
-var OPTIONAL_FILES = [
-  './routine.js'
-];
+addEventListener('activate', (e) => e.waitUntil((async () => {
+  for (const k of await caches.keys()) if (k !== APP && k !== FONTS) { log('dropping cache', k); await caches.delete(k); }
+  await clients.claim();
+})()));
 
-self.addEventListener('install', function (event) {
-  event.waitUntil(
-    caches.open(APP_CACHE)
-      .then(function (cache) {
-        return cache.addAll(APP_FILES).then(function () {
-          return Promise.all(OPTIONAL_FILES.map(function (f) {
-            return cache.add(f).catch(function () {});
-          }));
-        });
-      })
-      .then(function () { return self.skipWaiting(); })
-  );
-});
-
-self.addEventListener('activate', function (event) {
-  event.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.map(function (k) {
-        if (k !== APP_CACHE && k !== FONT_CACHE) return caches.delete(k);
-      }));
-    }).then(function () { return self.clients.claim(); })
-  );
-});
-
-self.addEventListener('fetch', function (event) {
-  var req = event.request;
+addEventListener('fetch', (e) => {
+  const req = e.request, url = new URL(req.url);
   if (req.method !== 'GET') return;
-  var url = new URL(req.url);
-
-  // Google Fonts: serve from cache, fetch once and keep it.
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(
-      caches.open(FONT_CACHE).then(function (cache) {
-        return cache.match(req).then(function (hit) {
-          return hit || fetch(req).then(function (res) {
-            if (res.ok || res.type === 'opaque') cache.put(req, res.clone());
-            return res;
-          });
-        });
-      })
-    );
-    return;
-  }
-
-  if (url.origin !== self.location.origin) return;
-
-  // Our own files: try the network first so updates show up right away,
-  // fall back to the cached copy when offline.
-  event.respondWith(
-    fetch(req).then(function (res) {
-      if (res.ok) {
-        var copy = res.clone();
-        caches.open(APP_CACHE).then(function (cache) { cache.put(req, copy); });
-      }
-      return res;
-    }).catch(function () {
-      return caches.match(req, { ignoreSearch: true }).then(function (hit) {
-        if (hit) return hit;
-        if (req.mode === 'navigate') return caches.match('./index.html');
-        return Response.error();
-      });
-    })
-  );
+  if (/^fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) e.respondWith(cacheFirst(req));
+  else if (url.origin === location.origin) e.respondWith(networkFirst(req));
 });
+
+async function cacheFirst(req) {
+  const cache = await caches.open(FONTS);
+  const hit = await cache.match(req);
+  if (hit) return hit;
+  const res = await fetch(req);
+  if (res.ok || res.type === 'opaque') cache.put(req, res.clone());
+  return res;
+}
+
+async function networkFirst(req) {
+  try {
+    const res = await fetch(req);
+    if (res.ok) { const copy = res.clone(); caches.open(APP).then((c) => c.put(req, copy)); }
+    return res;
+  } catch (err) {
+    log('offline, serving cache for', req.url, err.message);
+    const hit = await caches.match(req, { ignoreSearch: true });
+    if (hit) return hit;
+    if (req.mode === 'navigate') return (await caches.match('./index.html')) ?? Response.error();
+    return Response.error();
+  }
+}
