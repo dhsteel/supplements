@@ -106,39 +106,7 @@
       </div>
     </div>
 
-    <div class="slot">
-      <header><h2>On waking</h2><p>Empty stomach. Wait 30–60 min before coffee, tea or dairy.</p></header>
-      <label class="item" data-only="iron"><input type="checkbox" data-id="iron"><div><b>Iron, 28 mg</b><span>Nature's Truth iron bisglycinate, 1 capsule. With water, or a small snack if it bugs your stomach.</span></div></label>
-      <label class="item"><input type="checkbox" data-id="vitc"><div><b>Vitamin C gummies, 250 mg</b><span>Nature Made. Every morning; on iron days it also helps the iron absorb.</span></div></label>
-    </div>
-
-    <div class="slot">
-      <header><h2>Morning coffee</h2><p>At least 30–60 min after the iron.</p></header>
-      <label class="item"><input type="checkbox" data-id="collagen"><div><b>Collagen, 1–2 tbsp</b><span>Stirred into your coffee.</span></div></label>
-    </div>
-
-    <div class="slot">
-      <header><h2>Biggest meal</h2><p>One with some fat in it.</p></header>
-      <label class="item"><input type="checkbox" data-id="multi"><div><b>Multivitamin, 2 gummies</b><span>Nature Made Multi + Omega-3.</span></div></label>
-      <label class="item"><input type="checkbox" data-id="omega"><div><b>Omega-3 mini gels, 2</b><span>Fridge storage helps with fishy burps.</span></div></label>
-      <label class="item" data-only="sunday"><input type="checkbox" data-id="d2" data-weekly="1"><div><b>Vitamin D2, 50,000 IU <em class="tag t-week">Sundays</em></b><span>Once a week, until the bottle is finished.</span></div></label>
-    </div>
-
-    <div class="slot">
-      <header><h2>Gym</h2><p>Before or during your workout.</p></header>
-      <label class="item" data-only="gym"><input type="checkbox" data-id="electrolytes"><div><b>Electrolytes</b><span>Gym days only.</span></div></label>
-    </div>
-
-    <div class="slot">
-      <header><h2>Dinner</h2><p>Zinc is easier on your stomach with food.</p></header>
-      <label class="item" data-only="zinc"><input type="checkbox" data-id="zinc"><div><b>Zinc, 30 mg</b><span>Nature Made, 1 tablet with your meal.</span></div></label>
-    </div>
-
-    <div class="slot">
-      <header><h2>Bedtime</h2><p>Calcium goes last so it doesn't block iron or zinc.</p></header>
-      <label class="item"><input type="checkbox" data-id="calcium"><div><b>Citracal Petites, 1 caplet</b><span>No food needed. Fine to skip on heavy-dairy days.</span></div></label>
-      <label class="item"><input type="checkbox" data-id="mag"><div><b>Magnesium glycinate, 2 gummies</b><span>For sleep and recovery.</span></div></label>
-    </div>
+    <div id="slots"></div>
 
     <div class="center"><button class="btn" id="reset">Clear today's checks</button></div>
   </section>
@@ -169,6 +137,7 @@
   </section>
 </div>
 
+<script src="routine.js"></script>
 <script>
 (function(){
   var mem = {};
@@ -196,6 +165,23 @@
   function gymToday(){ return typeof gymSet === 'boolean' ? gymSet : defaultGym(now); }
 
   document.getElementById('today').textContent = now.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+
+  // Build the checklist from routine.js
+  var slotsEl = document.getElementById('slots');
+  function mk(tag, cls, text){ var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  (window.ROUTINE || []).forEach(function(slot){
+    var s = mk('div', 'slot');
+    var h = mk('header'); h.appendChild(mk('h2', null, slot.title)); if (slot.note) h.appendChild(mk('p', null, slot.note)); s.appendChild(h);
+    (slot.items || []).forEach(function(it){
+      var l = mk('label', 'item'); if (it.when) l.setAttribute('data-only', it.when);
+      var cb = mk('input'); cb.type = 'checkbox'; cb.setAttribute('data-id', it.id); if (it.weekly) cb.setAttribute('data-weekly', '1');
+      var txt = mk('div'), b = mk('b', null, it.name);
+      if (it.tag) { b.appendChild(document.createTextNode(' ')); b.appendChild(mk('em', 'tag t-week', it.tag)); }
+      txt.appendChild(b); if (it.note) txt.appendChild(mk('span', null, it.note));
+      l.appendChild(cb); l.appendChild(txt); s.appendChild(l);
+    });
+    slotsEl.appendChild(s);
+  });
 
   var boxes = Array.prototype.slice.call(document.querySelectorAll('input[data-id]'));
   var gymToggle = document.getElementById('gymToggle');
